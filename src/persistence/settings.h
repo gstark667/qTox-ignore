@@ -241,7 +241,7 @@ signals:
     void inDevChanged(const QString& name);
     void audioInDevEnabledChanged(bool enabled);
     void audioInGainDecibelChanged(qreal gain);
-    void audioThresholdChanged(qreal gain);
+    void audioThresholdChanged(qreal percent);
     void outDevChanged(const QString& name);
     void audioOutDevEnabledChanged(bool enabled);
     void outVolumeChanged(int volume);

@@ -57,6 +57,8 @@ OpenAL::OpenAL()
     , outputInitialized{false}
     , minInGain{-30}
     , maxInGain{30}
+    , minInThreshold{0.0f}
+    , maxInThreshold{0.4f}
 {
     // initialize OpenAL error stack
     alGetError();
@@ -173,6 +175,50 @@ void OpenAL::setMaxInputGain(qreal dB)
 {
     QMutexLocker locker(&audioLock);
     maxInGain = dB;
+}
+
+/**
+ * @brief The minimum threshold value for an input device.
+ *
+ * @return minimum threshold percentage
+ */
+qreal OpenAL::minInputThreshold() const
+{
+    QMutexLocker locker(&audioLock);
+    return minInThreshold;
+}
+
+/**
+ * @brief Set the minimum allowed threshold percentage
+ *
+ * @note Default is 0%; usually you don't need to alter this value;
+ */
+void OpenAL::setMinInputThreshold(qreal percent)
+{
+    QMutexLocker locker(&audioLock);
+    minInThreshold = percent;
+}
+
+/**
+ * @brief The maximum threshold value for an input device.
+ *
+ * @return maximum threshold percentage
+ */
+qreal OpenAL::maxInputThreshold() const
+{
+    QMutexLocker locker(&audioLock);
+    return maxInThreshold;
+}
+
+/**
+ * @brief Set the maximum allowed threshold percentage
+ *
+ * @note Default is 40%; usually you don't need to alter this value.
+ */
+void OpenAL::setMaxInputThreshold(qreal percent)
+{
+    QMutexLocker locker(&audioLock);
+    maxInThreshold = percent;
 }
 
 void OpenAL::reinitInput(const QString& inDevDesc)
@@ -485,22 +531,27 @@ void OpenAL::playMono16SoundCleanup()
 
 /**
  * @brief Called by doCapture to filter quiet noise from audio
+ *
+ * @param[in] buf   the current audio buffer
+ *
+ * @return volume in percent of max volume
  */
-int OpenAL::doThreshold(int16_t *buf)
+float OpenAL::doThreshold(int16_t *buf)
 {
-    double sum = 0.0;
-    for (quint32 i = 0; i < AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS; i += 2) {
-        double sample = (double)buf[i];
-        sum += sample*sample;
+    quint32 samples = AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS;
+    float sum = 0.0;
+    for (quint32 i = 0; i < samples; i++) {
+        float sample = (float)buf[i] / (float)std::numeric_limits<int16_t>::max();
+        sum += abs(sample);
     }
-    double rms = sqrt(sum / (AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS / 2));
-    double volume = 20*log10(rms);
+    float volume = sum / samples;
     if (volume < threshold) {
-        for (quint32 i = 0; i < AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS; ++i) {
+        for (quint32 i = 0; i < samples; ++i) {
             buf[i] = 0;
         }
     }
-    return (int)volume;
+    qDebug() << "Volume: " << volume;
+    return volume;
 }
 
 /**
@@ -521,6 +572,13 @@ void OpenAL::doCapture()
     int16_t buf[AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS];
     alcCaptureSamples(alInDev, buf, AUDIO_FRAME_SAMPLE_COUNT);
 
+    float volume = doThreshold(buf);
+    if (volume < threshold)
+    {
+        emit Audio::volumeAvailable(volume);
+        return;
+    }
+
     for (quint32 i = 0; i < AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS; ++i) {
         // gain amplification with clipping to 16-bit boundaries
         int ampPCM =
@@ -530,7 +588,6 @@ void OpenAL::doCapture()
         buf[i] = static_cast<int16_t>(ampPCM);
     }
 
-    int volume = doThreshold(buf);
     if (volume > threshold) {
         emit Audio::frameAvailable(buf, AUDIO_FRAME_SAMPLE_COUNT, AUDIO_CHANNELS, AUDIO_SAMPLE_RATE);
     }
@@ -669,7 +726,7 @@ void OpenAL::setInputGain(qreal dB)
     gainFactor = qPow(10.0, (gain / 20.0));
 }
 
-void OpenAL::setInputThreshold(qreal dB)
+void OpenAL::setInputThreshold(qreal percent)
 {
-    threshold = dB;
+    threshold = percent;
 }

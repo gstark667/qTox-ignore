@@ -1828,12 +1828,12 @@ qreal Settings::getAudioThreshold() const
     return audioThreshold;
 }
 
-void Settings::setAudioThreshold(qreal dB)
+void Settings::setAudioThreshold(qreal percent)
 {
     QMutexLocker locker{&bigLock};
 
-    if (dB < audioThreshold || dB > audioThreshold) {
-        audioThreshold = dB;
+    if (percent < audioThreshold || percent > audioThreshold) {
+        audioThreshold = percent;
         emit audioThresholdChanged(audioThreshold);
     }
 }

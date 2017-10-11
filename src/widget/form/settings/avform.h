@@ -75,7 +75,7 @@ private slots:
     void on_videoModescomboBox_currentIndexChanged(int index);
 
     void rescanDevices();
-    void setVolume(int value);
+    void setVolume(float value);
 
     void on_cbEnableBackend2_stateChanged();
 
