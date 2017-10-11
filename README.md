@@ -31,7 +31,7 @@ Week of Testing: Your mana regenerates!" />
 <p align="center"><b>
 I have added volume based voice detection to the current audio api.
 The settings menu has been updated to include a threshold value and volume visualizer which allow you to adjust this feature.
-Currently the threshold is not saved and the openal2 pipeline does not include the filtering yet either.
+The openal2 pipeline does not include the filtering yet.
 </b></p>
 
 ---
