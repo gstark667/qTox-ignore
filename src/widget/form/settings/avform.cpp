@@ -83,6 +83,21 @@ AVForm::AVForm()
     microphoneSlider->setTracking(false);
     microphoneSlider->installEventFilter(this);
 
+    thresholdSlider->setToolTip(tr("Use slider to set the minimum detection volume for your"
+                                    " input device.")
+                                     .arg(audio.minInputGain())
+                                     .arg(audio.maxInputGain()));
+    // TODO: put these min max values into the audio class and get them from there
+    thresholdSlider->setValue(s.getAudioThreshold());
+    thresholdSlider->setMinimum(0);
+    thresholdSlider->setMaximum(100);
+    thresholdSlider->setTracking(false);
+    thresholdSlider->installEventFilter(this);
+    connect(&audio, &Audio::volumeAvailable, this, &AVForm::setVolume);
+    // TODO: same here
+    volumeDisplay->setMinimum(0);
+    volumeDisplay->setMaximum(100);
+
     fillAudioQualityComboBox();
 
     eventsInit();
@@ -146,6 +161,11 @@ void AVForm::rescanDevices()
     getAudioInDevices();
     getAudioOutDevices();
     getVideoDevices();
+}
+
+void AVForm::setVolume(int value)
+{
+    volumeDisplay->setValue(value);
 }
 
 void AVForm::on_cbEnableBackend2_stateChanged()
@@ -553,6 +573,14 @@ void AVForm::on_microphoneSlider_valueChanged(int value)
 
     Settings::getInstance().setAudioInGainDecibel(dB);
     Audio::getInstance().setInputGain(dB);
+}
+
+void AVForm::on_thresholdSlider_valueChanged(int value)
+{
+    const qreal dB = value;
+
+    Settings::getInstance().setAudioThreshold(dB);
+    Audio::getInstance().setInputThreshold(dB);
 }
 
 void AVForm::createVideoSurface()

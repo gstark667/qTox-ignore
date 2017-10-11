@@ -1820,6 +1820,22 @@ void Settings::setAudioInGainDecibel(qreal dB)
     }
 }
 
+qreal Settings::getAudioThreshold() const
+{
+    QMutexLocker locker{&bigLock};
+    return audioInGainDecibel;
+}
+
+void Settings::setAudioThreshold(qreal dB)
+{
+    QMutexLocker locker{&bigLock};
+
+    if (dB < audioThreshold || dB > audioThreshold) {
+        audioThreshold = dB;
+        emit audioThresholdChanged(audioThreshold);
+    }
+}
+
 QString Settings::getVideoDev() const
 {
     QMutexLocker locker{&bigLock};

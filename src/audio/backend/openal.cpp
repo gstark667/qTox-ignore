@@ -278,6 +278,7 @@ bool OpenAL::initInput(const QString& deviceName, uint32_t channels)
     }
 
     setInputGain(Settings::getInstance().getAudioInGainDecibel());
+    setInputThreshold(Settings::getInstance().getAudioThreshold());
 
     qDebug() << "Opened audio input" << deviceName;
     alcCaptureStart(alInDev);
@@ -509,7 +510,21 @@ void OpenAL::doCapture()
         buf[i] = static_cast<int16_t>(ampPCM);
     }
 
+    double sum = 0.0;
+    for (quint32 i = 0; i < AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS; i += 2) {
+        double sample = (double)buf[i];
+        sum += sample*sample;
+    }
+    double rms = sqrt(sum / (AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS / 2));
+    double volume = 20*log10(rms);
+    if (volume < threshold) {
+        for (quint32 i = 0; i < AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS; ++i) {
+            buf[i] = 0;
+        }
+    }
+
     emit Audio::frameAvailable(buf, AUDIO_FRAME_SAMPLE_COUNT, AUDIO_CHANNELS, AUDIO_SAMPLE_RATE);
+    emit Audio::volumeAvailable(volume);
 }
 
 /**
@@ -628,6 +643,11 @@ qreal OpenAL::inputGain() const
     return gain;
 }
 
+qreal OpenAL::inputThreshold() const
+{
+    return threshold;
+}
+
 qreal OpenAL::inputGainFactor() const
 {
     return gainFactor;
@@ -637,4 +657,9 @@ void OpenAL::setInputGain(qreal dB)
 {
     gain = qBound(minInGain, dB, maxInGain);
     gainFactor = qPow(10.0, (gain / 20.0));
+}
+
+void OpenAL::setInputThreshold(qreal dB)
+{
+    threshold = dB;
 }

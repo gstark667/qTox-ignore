@@ -161,6 +161,9 @@
  * @fn void Audio::setInputGain(qreal dB)
  * @brief set the input gain
  *
+ * @fn void Audio::setInputThreshold(qreal dB)
+ * @brief set the input threshold
+ *
  * @param[in] dB the new input gain in dB
  */
 
@@ -174,6 +177,7 @@ Audio& Audio::getInstance()
     static bool initialized = false;
     static bool Backend2 = false;
 
+    qDebug() << "seting up audio instance";
     if (!initialized) {
         Backend2 = Settings::getInstance().getEnableBackend2();
         initialized = true;

@@ -60,6 +60,9 @@ public:
     qreal inputGain() const;
     void setInputGain(qreal dB);
 
+    qreal inputThreshold() const;
+    void setInputThreshold(qreal dB);
+
     void reinitInput(const QString& inDevDesc);
     bool reinitOutput(const QString& outDevDesc);
 
@@ -120,6 +123,7 @@ protected:
     qreal gainFactor;
     qreal minInGain = -30;
     qreal maxInGain = 30;
+    qreal threshold;
 };
 
 #endif // OPENAL_H

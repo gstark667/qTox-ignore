@@ -72,6 +72,9 @@ public:
     virtual qreal inputGain() const = 0;
     virtual void setInputGain(qreal dB) = 0;
 
+    virtual qreal inputThreshold() const = 0;
+    virtual void setInputThreshold(qreal dB) = 0;
+
     virtual void reinitInput(const QString& inDevDesc) = 0;
     virtual bool reinitOutput(const QString& outDevDesc) = 0;
 
@@ -104,6 +107,7 @@ protected:
 signals:
     void frameAvailable(const int16_t* pcm, size_t sample_count, uint8_t channels,
                         uint32_t sampling_rate);
+    void volumeAvailable(int value);
 };
 
 #endif // AUDIO_H
