@@ -102,6 +102,7 @@ private:
     virtual bool initInput(const QString& deviceName);
     virtual bool initOutput(const QString& outDevDescr);
     void playMono16SoundCleanup();
+    int doThreshold(int16_t *buf);
     void doCapture();
 
 protected:

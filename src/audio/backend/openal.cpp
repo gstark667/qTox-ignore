@@ -484,6 +484,26 @@ void OpenAL::playMono16SoundCleanup()
 }
 
 /**
+ * @brief Called by doCapture to filter quiet noise from audio
+ */
+int OpenAL::doThreshold(int16_t *buf)
+{
+    double sum = 0.0;
+    for (quint32 i = 0; i < AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS; i += 2) {
+        double sample = (double)buf[i];
+        sum += sample*sample;
+    }
+    double rms = sqrt(sum / (AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS / 2));
+    double volume = 20*log10(rms);
+    if (volume < threshold) {
+        for (quint32 i = 0; i < AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS; ++i) {
+            buf[i] = 0;
+        }
+    }
+    return (int)volume;
+}
+
+/**
  * @brief Called on the captureTimer events to capture audio
  */
 void OpenAL::doCapture()
@@ -510,20 +530,10 @@ void OpenAL::doCapture()
         buf[i] = static_cast<int16_t>(ampPCM);
     }
 
-    double sum = 0.0;
-    for (quint32 i = 0; i < AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS; i += 2) {
-        double sample = (double)buf[i];
-        sum += sample*sample;
+    int volume = doThreshold(buf);
+    if (volume > threshold) {
+        emit Audio::frameAvailable(buf, AUDIO_FRAME_SAMPLE_COUNT, AUDIO_CHANNELS, AUDIO_SAMPLE_RATE);
     }
-    double rms = sqrt(sum / (AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS / 2));
-    double volume = 20*log10(rms);
-    if (volume < threshold) {
-        for (quint32 i = 0; i < AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS; ++i) {
-            buf[i] = 0;
-        }
-    }
-
-    emit Audio::frameAvailable(buf, AUDIO_FRAME_SAMPLE_COUNT, AUDIO_CHANNELS, AUDIO_SAMPLE_RATE);
     emit Audio::volumeAvailable(volume);
 }
 

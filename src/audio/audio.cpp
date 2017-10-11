@@ -177,7 +177,6 @@ Audio& Audio::getInstance()
     static bool initialized = false;
     static bool Backend2 = false;
 
-    qDebug() << "seting up audio instance";
     if (!initialized) {
         Backend2 = Settings::getInstance().getEnableBackend2();
         initialized = true;
