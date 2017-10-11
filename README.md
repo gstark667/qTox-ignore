@@ -29,6 +29,14 @@ Week of Testing: Your mana regenerates!" />
 ---
 
 <p align="center"><b>
+I have added volume based voice detection to the current audio api.
+The settings menu has been updated to include a threshold value and volume visualizer which allow you to adjust this feature.
+Currently the threshold is not saved and the openal2 pipeline does not include the filtering yet either.
+</b></p>
+
+---
+
+<p align="center"><b>
 qTox is a powerful Tox client that follows the Tox design guidelines
 while running on all major platforms.
 </b></p>
