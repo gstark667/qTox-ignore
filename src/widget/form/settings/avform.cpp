@@ -101,7 +101,7 @@ AVForm::AVForm()
     activationThresholdSlider->setValue(s.getActivationThreshold() * 1000);
     activationThresholdSlider->setMinimum(audio.minInputThreshold() * 1000);
     activationThresholdSlider->setMaximum(audio.maxInputThreshold() * 1000);
-    activationThresholdSlider->setTracking(false);
+    activationThresholdSlider->setTracking(true);
     activationThresholdSlider->installEventFilter(this);
 
     deactivationThresholdSlider->setToolTip(tr("Use slider to set the deactivation volume for your"
@@ -109,7 +109,7 @@ AVForm::AVForm()
     deactivationThresholdSlider->setValue(s.getDeactivationThreshold() * 1000);
     deactivationThresholdSlider->setMinimum(audio.minInputThreshold() * 1000);
     deactivationThresholdSlider->setMaximum(audio.maxInputThreshold() * 1000);
-    deactivationThresholdSlider->setTracking(false);
+    deactivationThresholdSlider->setTracking(true);
     deactivationThresholdSlider->installEventFilter(this);
 
     connect(&audio, &Audio::volumeAvailable, this, &AVForm::setVolume);
@@ -597,6 +597,9 @@ void AVForm::on_activationThresholdSlider_valueChanged(int value)
 {
     const qreal percent = value / 1000.0;
 
+    if (value < deactivationThresholdSlider->value())
+        deactivationThresholdSlider->setValue(value);
+
     Settings::getInstance().setActivationThreshold(percent);
     Audio::getInstance().setActivationThreshold(percent);
 }
@@ -604,6 +607,9 @@ void AVForm::on_activationThresholdSlider_valueChanged(int value)
 void AVForm::on_deactivationThresholdSlider_valueChanged(int value)
 {
     const qreal percent = value / 1000.0;
+
+    if (value > activationThresholdSlider->value())
+        activationThresholdSlider->setValue(value);
 
     Settings::getInstance().setDeactivationThreshold(percent);
     Audio::getInstance().setDeactivationThreshold(percent);
