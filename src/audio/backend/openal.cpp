@@ -59,6 +59,9 @@ OpenAL::OpenAL()
     , maxInGain{30}
     , minInThreshold{0.0f}
     , maxInThreshold{0.4f}
+    , minThresholdFrames{1}
+    , maxThresholdFrames{16}
+    , isActive{false}
 {
     // initialize OpenAL error stack
     alGetError();
@@ -221,6 +224,50 @@ void OpenAL::setMaxInputThreshold(qreal percent)
     maxInThreshold = percent;
 }
 
+/**
+ * @brief The minimum threshold value for an input device.
+ *
+ * @return minimum threshold percentage
+ */
+int OpenAL::getMinThresholdFrames() const
+{
+    QMutexLocker locker(&audioLock);
+    return minThresholdFrames;
+}
+
+/**
+ * @brief Set the minimum allowed threshold percentage
+ *
+ * @note Default is 0%; usually you don't need to alter this value;
+ */
+void OpenAL::setMinThresholdFrames(int frames)
+{
+    QMutexLocker locker(&audioLock);
+    minThresholdFrames = frames;
+}
+
+/**
+ * @brief The maximum threshold value for an input device.
+ *
+ * @return maximum threshold percentage
+ */
+int OpenAL::getMaxThresholdFrames() const
+{
+    QMutexLocker locker(&audioLock);
+    return maxThresholdFrames;
+}
+
+/**
+ * @brief Set the maximum allowed threshold percentage
+ *
+ * @note Default is 40%; usually you don't need to alter this value.
+ */
+void OpenAL::setMaxThresholdFrames(int frames)
+{
+    QMutexLocker locker(&audioLock);
+    maxThresholdFrames = frames;
+}
+
 void OpenAL::reinitInput(const QString& inDevDesc)
 {
     QMutexLocker locker(&audioLock);
@@ -324,7 +371,9 @@ bool OpenAL::initInput(const QString& deviceName, uint32_t channels)
     }
 
     setInputGain(Settings::getInstance().getAudioInGainDecibel());
-    setInputThreshold(Settings::getInstance().getAudioThreshold());
+    setActivationThreshold(Settings::getInstance().getActivationThreshold());
+    setDeactivationThreshold(Settings::getInstance().getDeactivationThreshold());
+    setThresholdFrames(Settings::getInstance().getThresholdFrames());
 
     qDebug() << "Opened audio input" << deviceName;
     alcCaptureStart(alInDev);
@@ -530,13 +579,13 @@ void OpenAL::playMono16SoundCleanup()
 }
 
 /**
- * @brief Called by doCapture to filter quiet noise from audio
+ * @brief Called by doCapture to calculate volume of the audio buffer
  *
  * @param[in] buf   the current audio buffer
  *
  * @return volume in percent of max volume
  */
-float OpenAL::doThreshold(int16_t *buf)
+float OpenAL::getVolume(int16_t *buf)
 {
     quint32 samples = AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS;
     float sum = 0.0;
@@ -544,14 +593,15 @@ float OpenAL::doThreshold(int16_t *buf)
         float sample = (float)buf[i] / (float)std::numeric_limits<int16_t>::max();
         sum += abs(sample);
     }
-    float volume = sum / samples;
-    if (volume < threshold) {
-        for (quint32 i = 0; i < samples; ++i) {
-            buf[i] = 0;
-        }
-    }
-    qDebug() << "Volume: " << volume;
-    return volume;
+    float frameVolume = sum/samples;
+    frameVolumes.push_back(frameVolume);
+    while (frameVolumes.size() > thresholdFrames)
+        frameVolumes.pop_front();
+
+    sum = 0.0;
+    for (int i = 0; i < frameVolumes.size(); ++i)
+        sum += frameVolumes[i];
+    return sum / frameVolumes.size();
 }
 
 /**
@@ -572,10 +622,18 @@ void OpenAL::doCapture()
     int16_t buf[AUDIO_FRAME_SAMPLE_COUNT * AUDIO_CHANNELS];
     alcCaptureSamples(alInDev, buf, AUDIO_FRAME_SAMPLE_COUNT);
 
-    float volume = doThreshold(buf);
-    if (volume < threshold)
+    float volume = getVolume(buf);
+    if (volume > activationThreshold)
     {
-        emit Audio::volumeAvailable(volume);
+        isActive = true;
+    }
+    if (volume < deactivationThreshold)
+    {
+        isActive = false;
+    }
+    emit Audio::volumeAvailable(volume);
+    if (!isActive)
+    {
         return;
     }
 
@@ -588,10 +646,7 @@ void OpenAL::doCapture()
         buf[i] = static_cast<int16_t>(ampPCM);
     }
 
-    if (volume > threshold) {
-        emit Audio::frameAvailable(buf, AUDIO_FRAME_SAMPLE_COUNT, AUDIO_CHANNELS, AUDIO_SAMPLE_RATE);
-    }
-    emit Audio::volumeAvailable(volume);
+    emit Audio::frameAvailable(buf, AUDIO_FRAME_SAMPLE_COUNT, AUDIO_CHANNELS, AUDIO_SAMPLE_RATE);
 }
 
 /**
@@ -710,9 +765,19 @@ qreal OpenAL::inputGain() const
     return gain;
 }
 
-qreal OpenAL::inputThreshold() const
+qreal OpenAL::getActivationThreshold() const
 {
-    return threshold;
+    return activationThreshold;
+}
+
+qreal OpenAL::getDeactivationThreshold() const
+{
+    return deactivationThreshold;
+}
+
+int OpenAL::getThresholdFrames() const
+{
+    return thresholdFrames;
 }
 
 qreal OpenAL::inputGainFactor() const
@@ -726,7 +791,17 @@ void OpenAL::setInputGain(qreal dB)
     gainFactor = qPow(10.0, (gain / 20.0));
 }
 
-void OpenAL::setInputThreshold(qreal percent)
+void OpenAL::setActivationThreshold(qreal percent)
 {
-    threshold = percent;
+    activationThreshold = percent;
+}
+
+void OpenAL::setDeactivationThreshold(qreal percent)
+{
+    deactivationThreshold = percent;
+}
+
+void OpenAL::setThresholdFrames(int frames)
+{
+    thresholdFrames = frames;
 }

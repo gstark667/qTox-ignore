@@ -78,8 +78,20 @@ public:
     virtual qreal maxInputThreshold() const = 0;
     virtual void setMaxInputThreshold(qreal dB) = 0;
 
-    virtual qreal inputThreshold() const = 0;
-    virtual void setInputThreshold(qreal percent) = 0;
+    virtual int getMinThresholdFrames() const = 0;
+    virtual void setMinThresholdFrames(int frames) = 0;
+
+    virtual int getMaxThresholdFrames() const = 0;
+    virtual void setMaxThresholdFrames(int frames) = 0;
+
+    virtual qreal getActivationThreshold() const = 0;
+    virtual void setActivationThreshold(qreal percent) = 0;
+
+    virtual qreal getDeactivationThreshold() const = 0;
+    virtual void setDeactivationThreshold(qreal percent) = 0;
+
+    virtual int getThresholdFrames() const = 0;
+    virtual void setThresholdFrames(int frames) = 0;
 
     virtual void reinitInput(const QString& inDevDesc) = 0;
     virtual bool reinitOutput(const QString& outDevDesc) = 0;

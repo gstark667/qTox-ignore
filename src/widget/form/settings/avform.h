@@ -67,7 +67,9 @@ private slots:
     void on_playbackSlider_valueChanged(int value);
     void on_cbEnableTestSound_stateChanged();
     void on_microphoneSlider_valueChanged(int value);
-    void on_thresholdSlider_valueChanged(int value);
+    void on_activationThresholdSlider_valueChanged(int value);
+    void on_deactivationThresholdSlider_valueChanged(int value);
+    void on_thresholdFramesSlider_valueChanged(int value);
     void on_audioQualityComboBox_currentIndexChanged(int index);
 
     // camera

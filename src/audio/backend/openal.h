@@ -66,8 +66,20 @@ public:
     qreal maxInputThreshold() const;
     void setMaxInputThreshold(qreal dB);
 
-    qreal inputThreshold() const;
-    void setInputThreshold(qreal percent);
+    int getMinThresholdFrames() const;
+    void setMinThresholdFrames(int frames);
+
+    int getMaxThresholdFrames() const;
+    void setMaxThresholdFrames(int frames);
+
+    qreal getActivationThreshold() const;
+    void setActivationThreshold(qreal percent);
+
+    qreal getDeactivationThreshold() const;
+    void setDeactivationThreshold(qreal percent);
+
+    int getThresholdFrames() const;
+    void setThresholdFrames(int frames);
 
     void reinitInput(const QString& inDevDesc);
     bool reinitOutput(const QString& outDevDesc);
@@ -108,7 +120,7 @@ private:
     virtual bool initInput(const QString& deviceName);
     virtual bool initOutput(const QString& outDevDescr);
     void playMono16SoundCleanup();
-    float doThreshold(int16_t *buf);
+    float getVolume(int16_t *buf);
     void doCapture();
 
 protected:
@@ -130,9 +142,15 @@ protected:
     qreal gainFactor;
     qreal minInGain = -30;
     qreal maxInGain = 30;
-    qreal threshold;
+    qreal activationThreshold;
+    qreal deactivationThreshold;
+    int thresholdFrames = 1;
     qreal minInThreshold = 0.0;
     qreal maxInThreshold = 0.4;
+    int minThresholdFrames = 1;
+    int maxThresholdFrames = 16;
+    bool isActive = false;
+    QList<qreal> frameVolumes;
 };
 
 #endif // OPENAL_H
