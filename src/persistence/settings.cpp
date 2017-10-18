@@ -264,9 +264,8 @@ void Settings::loadGlobal()
         outDev = s.value("outDev", "").toString();
         audioOutDevEnabled = s.value("audioOutDevEnabled", true).toBool();
         audioInGainDecibel = s.value("inGain", 0).toReal();
-        activationThreshold = s.value("activationThreshold", 0).toReal();
-        deactivationThreshold = s.value("deactivationThreshold", 0).toReal();
-        thresholdFrames = s.value("thresholdFrames", 0).toReal();
+        audioThreshold = s.value("audioThreshold", 0).toReal();
+        voiceHold = s.value("voiceHold", 250).toInt();
         outVolume = s.value("outVolume", 100).toInt();
         audioBitrate = s.value("audioBitrate", 64).toInt();
         enableBackend2 = false;
@@ -569,9 +568,8 @@ void Settings::saveGlobal()
         s.setValue("outDev", outDev);
         s.setValue("audioOutDevEnabled", audioOutDevEnabled);
         s.setValue("inGain", audioInGainDecibel);
-        s.setValue("activationThreshold", activationThreshold);
-        s.setValue("deactivationThreshold", deactivationThreshold);
-        s.setValue("thresholdFrames", thresholdFrames);
+        s.setValue("audioThreshold", audioThreshold);
+        s.setValue("voiceHold", voiceHold);
         s.setValue("outVolume", outVolume);
         s.setValue("audioBitrate", audioBitrate);
         s.setValue("enableBackend2", enableBackend2);
@@ -1826,51 +1824,35 @@ void Settings::setAudioInGainDecibel(qreal dB)
     }
 }
 
-qreal Settings::getActivationThreshold() const
+qreal Settings::getAudioThreshold() const
 {
     QMutexLocker locker{&bigLock};
-    return activationThreshold;
+    return audioThreshold;
 }
 
-void Settings::setActivationThreshold(qreal percent)
+void Settings::setAudioThreshold(qreal percent)
 {
     QMutexLocker locker{&bigLock};
 
-    if (percent < activationThreshold || percent > activationThreshold) {
-        activationThreshold = percent;
-        emit activationThresholdChanged(activationThreshold);
+    if (percent < audioThreshold || percent > audioThreshold) {
+        audioThreshold = percent;
+        emit audioThresholdChanged(audioThreshold);
     }
 }
 
-qreal Settings::getDeactivationThreshold() const
+int Settings::getVoiceHold() const
 {
     QMutexLocker locker{&bigLock};
-    return deactivationThreshold;
+    return voiceHold;
 }
 
-void Settings::setDeactivationThreshold(qreal percent)
+void Settings::setVoiceHold(int msec)
 {
     QMutexLocker locker{&bigLock};
 
-    if (percent < deactivationThreshold || percent > deactivationThreshold) {
-        deactivationThreshold = percent;
-        emit deactivationThresholdChanged(deactivationThreshold);
-    }
-}
-
-int Settings::getThresholdFrames() const
-{
-    QMutexLocker locker{&bigLock};
-    return thresholdFrames;
-}
-
-void Settings::setThresholdFrames(int frames)
-{
-    QMutexLocker locker{&bigLock};
-
-    if (frames < thresholdFrames || frames > thresholdFrames) {
-        thresholdFrames = frames;
-        emit thresholdFramesChanged(thresholdFrames);
+    if (msec < voiceHold || msec > voiceHold) {
+        voiceHold = msec;
+        emit voiceHoldChanged(voiceHold);
     }
 }
 

@@ -83,34 +83,26 @@ AVForm::AVForm()
     microphoneSlider->setTracking(false);
     microphoneSlider->installEventFilter(this);
 
-    thresholdFramesSlider->setToolTip(tr("Use slider to set the number of frames your volume will"
-                                    " be averaged from. Ranges from %1 to %2.")
-                                      .arg(audio.getMinThresholdFrames())
-                                      .arg(audio.getMaxThresholdFrames()));
-    thresholdFramesSlider->setValue(s.getThresholdFrames());
-    thresholdFramesSlider->setMinimum(audio.getMinThresholdFrames());
-    thresholdFramesSlider->setMaximum(audio.getMaxThresholdFrames());
-    thresholdFramesSlider->setTickPosition(QSlider::TicksBothSides);
-    thresholdFramesSlider->setTickInterval(
-        (qAbs(thresholdFramesSlider->minimum()) + thresholdFramesSlider->maximum()) / 16);
-    thresholdFramesSlider->setTracking(false);
-    thresholdFramesSlider->installEventFilter(this);
+    voiceHoldSlider->setToolTip(tr("Use slider to set how long audio will be active for after"
+                                    " audio drops below the threshold. Ranges from %1 to %2 milliseconds.")
+                                      .arg(audio.getMinVoiceHold())
+                                      .arg(audio.getMaxVoiceHold()));
+    voiceHoldSlider->setMinimum(audio.getMinVoiceHold());
+    voiceHoldSlider->setMaximum(audio.getMaxVoiceHold());
+    voiceHoldSlider->setValue(s.getVoiceHold());
+    voiceHoldSlider->setTickPosition(QSlider::TicksBothSides);
+    voiceHoldSlider->setTickInterval(
+        (qAbs(voiceHoldSlider->minimum()) + voiceHoldSlider->maximum()) / 4);
+    voiceHoldSlider->setTracking(false);
+    voiceHoldSlider->installEventFilter(this);
 
-    activationThresholdSlider->setToolTip(tr("Use slider to set the activation volume for your"
+    audioThresholdSlider->setToolTip(tr("Use slider to set the activation volume for your"
                                     " input device."));
-    activationThresholdSlider->setValue(s.getActivationThreshold() * 1000);
-    activationThresholdSlider->setMinimum(audio.minInputThreshold() * 1000);
-    activationThresholdSlider->setMaximum(audio.maxInputThreshold() * 1000);
-    activationThresholdSlider->setTracking(true);
-    activationThresholdSlider->installEventFilter(this);
-
-    deactivationThresholdSlider->setToolTip(tr("Use slider to set the deactivation volume for your"
-                                    " input device."));
-    deactivationThresholdSlider->setValue(s.getDeactivationThreshold() * 1000);
-    deactivationThresholdSlider->setMinimum(audio.minInputThreshold() * 1000);
-    deactivationThresholdSlider->setMaximum(audio.maxInputThreshold() * 1000);
-    deactivationThresholdSlider->setTracking(true);
-    deactivationThresholdSlider->installEventFilter(this);
+    audioThresholdSlider->setMinimum(audio.minInputThreshold() * 1000);
+    audioThresholdSlider->setMaximum(audio.maxInputThreshold() * 1000);
+    audioThresholdSlider->setValue(s.getAudioThreshold() * 1000);
+    audioThresholdSlider->setTracking(false);
+    audioThresholdSlider->installEventFilter(this);
 
     connect(&audio, &Audio::volumeAvailable, this, &AVForm::setVolume);
     volumeDisplay->setMinimum(audio.minInputThreshold() * 1000);
@@ -593,32 +585,18 @@ void AVForm::on_microphoneSlider_valueChanged(int value)
     Audio::getInstance().setInputGain(dB);
 }
 
-void AVForm::on_activationThresholdSlider_valueChanged(int value)
+void AVForm::on_audioThresholdSlider_valueChanged(int value)
 {
     const qreal percent = value / 1000.0;
 
-    if (value < deactivationThresholdSlider->value())
-        deactivationThresholdSlider->setValue(value);
-
-    Settings::getInstance().setActivationThreshold(percent);
-    Audio::getInstance().setActivationThreshold(percent);
+    Settings::getInstance().setAudioThreshold(percent);
+    Audio::getInstance().setInputThreshold(percent);
 }
 
-void AVForm::on_deactivationThresholdSlider_valueChanged(int value)
+void AVForm::on_voiceHoldSlider_valueChanged(int value)
 {
-    const qreal percent = value / 1000.0;
-
-    if (value > activationThresholdSlider->value())
-        activationThresholdSlider->setValue(value);
-
-    Settings::getInstance().setDeactivationThreshold(percent);
-    Audio::getInstance().setDeactivationThreshold(percent);
-}
-
-void AVForm::on_thresholdFramesSlider_valueChanged(int value)
-{
-    Settings::getInstance().setThresholdFrames(value);
-    Audio::getInstance().setThresholdFrames(value);
+    Settings::getInstance().setVoiceHold(value);
+    Audio::getInstance().setVoiceHold(value);
 }
 
 void AVForm::createVideoSurface()

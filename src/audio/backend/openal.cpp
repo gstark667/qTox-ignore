@@ -59,8 +59,8 @@ OpenAL::OpenAL()
     , maxInGain{30}
     , minInThreshold{0.0f}
     , maxInThreshold{0.4f}
-    , minThresholdFrames{1}
-    , maxThresholdFrames{16}
+    , minVoiceHold{250}
+    , maxVoiceHold{1000}
     , isActive{false}
 {
     // initialize OpenAL error stack
@@ -71,6 +71,10 @@ OpenAL::OpenAL()
     QObject::connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
 
     moveToThread(audioThread);
+
+    voiceTimer.setSingleShot(true);
+    connect(this, &Audio::startActive, &voiceTimer, static_cast<void (QTimer::*)(int)>(&QTimer::start));
+    connect(&voiceTimer, &QTimer::timeout, this, &Audio::stopActive);
 
     connect(&captureTimer, &QTimer::timeout, this, &OpenAL::doCapture);
     captureTimer.setInterval(AUDIO_FRAME_DURATION / 2);
@@ -214,6 +218,50 @@ qreal OpenAL::maxInputThreshold() const
 }
 
 /**
+ * @brief Set the minimum allowed voice hold milliseconds
+ *
+ * @note Default is 100; usually you don't need to alter this value.
+ */
+void OpenAL::setMinVoiceHold(int msec)
+{
+    QMutexLocker locker(&audioLock);
+    minVoiceHold = msec;
+}
+
+/**
+ * @brief The minimum milliseconds for voice hold
+ *
+ * @return minimum voice hold time
+ */
+int OpenAL::getMinVoiceHold() const
+{
+    QMutexLocker locker(&audioLock);
+    return minVoiceHold;
+}
+
+/**
+ * @brief Set the maximum allowed voice hold milliseconds
+ *
+ * @note Default is 500; usually you don't need to alter this value.
+ */
+void OpenAL::setMaxVoiceHold(int msec)
+{
+    QMutexLocker locker(&audioLock);
+    maxVoiceHold = msec;
+}
+
+/**
+ * @brief The maximum milliseconds for voice hold
+ *
+ * @return maximum voice hold time
+ */
+int OpenAL::getMaxVoiceHold() const
+{
+    QMutexLocker locker(&audioLock);
+    return maxVoiceHold;
+}
+
+/**
  * @brief Set the maximum allowed threshold percentage
  *
  * @note Default is 40%; usually you don't need to alter this value.
@@ -222,50 +270,6 @@ void OpenAL::setMaxInputThreshold(qreal percent)
 {
     QMutexLocker locker(&audioLock);
     maxInThreshold = percent;
-}
-
-/**
- * @brief The minimum threshold value for an input device.
- *
- * @return minimum threshold percentage
- */
-int OpenAL::getMinThresholdFrames() const
-{
-    QMutexLocker locker(&audioLock);
-    return minThresholdFrames;
-}
-
-/**
- * @brief Set the minimum allowed threshold percentage
- *
- * @note Default is 0%; usually you don't need to alter this value;
- */
-void OpenAL::setMinThresholdFrames(int frames)
-{
-    QMutexLocker locker(&audioLock);
-    minThresholdFrames = frames;
-}
-
-/**
- * @brief The maximum threshold value for an input device.
- *
- * @return maximum threshold percentage
- */
-int OpenAL::getMaxThresholdFrames() const
-{
-    QMutexLocker locker(&audioLock);
-    return maxThresholdFrames;
-}
-
-/**
- * @brief Set the maximum allowed threshold percentage
- *
- * @note Default is 40%; usually you don't need to alter this value.
- */
-void OpenAL::setMaxThresholdFrames(int frames)
-{
-    QMutexLocker locker(&audioLock);
-    maxThresholdFrames = frames;
 }
 
 void OpenAL::reinitInput(const QString& inDevDesc)
@@ -371,9 +375,8 @@ bool OpenAL::initInput(const QString& deviceName, uint32_t channels)
     }
 
     setInputGain(Settings::getInstance().getAudioInGainDecibel());
-    setActivationThreshold(Settings::getInstance().getActivationThreshold());
-    setDeactivationThreshold(Settings::getInstance().getDeactivationThreshold());
-    setThresholdFrames(Settings::getInstance().getThresholdFrames());
+    setInputThreshold(Settings::getInstance().getAudioThreshold());
+    setVoiceHold(Settings::getInstance().getVoiceHold());
 
     qDebug() << "Opened audio input" << deviceName;
     alcCaptureStart(alInDev);
@@ -593,15 +596,12 @@ float OpenAL::getVolume(int16_t *buf)
         float sample = (float)buf[i] / (float)std::numeric_limits<int16_t>::max();
         sum += abs(sample);
     }
-    float frameVolume = sum/samples;
-    frameVolumes.push_back(frameVolume);
-    while (frameVolumes.size() > thresholdFrames)
-        frameVolumes.pop_front();
+    return sum/samples;
+}
 
-    sum = 0.0;
-    for (int i = 0; i < frameVolumes.size(); ++i)
-        sum += frameVolumes[i];
-    return sum / frameVolumes.size();
+void OpenAL::stopActive()
+{
+    isActive = false;
 }
 
 /**
@@ -623,14 +623,12 @@ void OpenAL::doCapture()
     alcCaptureSamples(alInDev, buf, AUDIO_FRAME_SAMPLE_COUNT);
 
     float volume = getVolume(buf);
-    if (volume > activationThreshold)
+    if (volume > inputThreshold)
     {
         isActive = true;
+        emit startActive(voiceHold);
     }
-    if (volume < deactivationThreshold)
-    {
-        isActive = false;
-    }
+
     emit Audio::volumeAvailable(volume);
     if (!isActive)
     {
@@ -765,19 +763,14 @@ qreal OpenAL::inputGain() const
     return gain;
 }
 
-qreal OpenAL::getActivationThreshold() const
+qreal OpenAL::getInputThreshold() const
 {
-    return activationThreshold;
+    return inputThreshold;
 }
 
-qreal OpenAL::getDeactivationThreshold() const
+int OpenAL::getVoiceHold() const
 {
-    return deactivationThreshold;
-}
-
-int OpenAL::getThresholdFrames() const
-{
-    return thresholdFrames;
+    return voiceHold;
 }
 
 qreal OpenAL::inputGainFactor() const
@@ -791,17 +784,13 @@ void OpenAL::setInputGain(qreal dB)
     gainFactor = qPow(10.0, (gain / 20.0));
 }
 
-void OpenAL::setActivationThreshold(qreal percent)
+void OpenAL::setInputThreshold(qreal percent)
 {
-    activationThreshold = percent;
+    inputThreshold = percent;
 }
 
-void OpenAL::setDeactivationThreshold(qreal percent)
+void OpenAL::setVoiceHold(int msec)
 {
-    deactivationThreshold = percent;
+    voiceHold = msec;
 }
 
-void OpenAL::setThresholdFrames(int frames)
-{
-    thresholdFrames = frames;
-}

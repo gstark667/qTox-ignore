@@ -78,20 +78,17 @@ public:
     virtual qreal maxInputThreshold() const = 0;
     virtual void setMaxInputThreshold(qreal dB) = 0;
 
-    virtual int getMinThresholdFrames() const = 0;
-    virtual void setMinThresholdFrames(int frames) = 0;
+    virtual int getMinVoiceHold() const = 0;
+    virtual void setMinVoiceHold(int msec) = 0;
 
-    virtual int getMaxThresholdFrames() const = 0;
-    virtual void setMaxThresholdFrames(int frames) = 0;
+    virtual int getMaxVoiceHold() const = 0;
+    virtual void setMaxVoiceHold(int msec) = 0;
 
-    virtual qreal getActivationThreshold() const = 0;
-    virtual void setActivationThreshold(qreal percent) = 0;
+    virtual qreal getInputThreshold() const = 0;
+    virtual void setInputThreshold(qreal percent) = 0;
 
-    virtual qreal getDeactivationThreshold() const = 0;
-    virtual void setDeactivationThreshold(qreal percent) = 0;
-
-    virtual int getThresholdFrames() const = 0;
-    virtual void setThresholdFrames(int frames) = 0;
+    virtual int getVoiceHold() const = 0;
+    virtual void setVoiceHold(int msec) = 0;
 
     virtual void reinitInput(const QString& inDevDesc) = 0;
     virtual bool reinitOutput(const QString& outDevDesc) = 0;
@@ -112,6 +109,8 @@ public:
     virtual void playMono16Sound(const QByteArray& data) = 0;
     virtual void playMono16Sound(const QString& path) = 0;
 
+    virtual void stopActive() = 0;
+
     virtual void playAudioBuffer(uint sourceId, const int16_t* data, int samples, unsigned channels,
                                  int sampleRate) = 0;
 
@@ -126,6 +125,7 @@ signals:
     void frameAvailable(const int16_t* pcm, size_t sample_count, uint8_t channels,
                         uint32_t sampling_rate);
     void volumeAvailable(float value);
+    void startActive(int msec);
 };
 
 #endif // AUDIO_H

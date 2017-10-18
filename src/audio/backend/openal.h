@@ -61,25 +61,22 @@ public:
     void setInputGain(qreal dB);
 
     qreal minInputThreshold() const;
-    void setMinInputThreshold(qreal dB);
+    void setMinInputThreshold(qreal percent);
 
     qreal maxInputThreshold() const;
-    void setMaxInputThreshold(qreal dB);
+    void setMaxInputThreshold(qreal percent);
 
-    int getMinThresholdFrames() const;
-    void setMinThresholdFrames(int frames);
+    int getMinVoiceHold() const;
+    void setMinVoiceHold(int msec);
 
-    int getMaxThresholdFrames() const;
-    void setMaxThresholdFrames(int frames);
+    int getMaxVoiceHold() const;
+    void setMaxVoiceHold(int msec);
 
-    qreal getActivationThreshold() const;
-    void setActivationThreshold(qreal percent);
+    qreal getInputThreshold() const;
+    void setInputThreshold(qreal percent);
 
-    qreal getDeactivationThreshold() const;
-    void setDeactivationThreshold(qreal percent);
-
-    int getThresholdFrames() const;
-    void setThresholdFrames(int frames);
+    int getVoiceHold() const;
+    void setVoiceHold(int msec);
 
     void reinitInput(const QString& inDevDesc);
     bool reinitOutput(const QString& outDevDesc);
@@ -99,6 +96,7 @@ public:
     void stopLoop();
     void playMono16Sound(const QByteArray& data);
     void playMono16Sound(const QString& path);
+    void stopActive();
 
     void playAudioBuffer(uint sourceId, const int16_t* data, int samples, unsigned channels,
                          int sampleRate);
@@ -142,15 +140,14 @@ protected:
     qreal gainFactor;
     qreal minInGain = -30;
     qreal maxInGain = 30;
-    qreal activationThreshold;
-    qreal deactivationThreshold;
-    int thresholdFrames = 1;
+    qreal inputThreshold;
+    int voiceHold;
+    bool isActive = false;
+    QTimer voiceTimer;
     qreal minInThreshold = 0.0;
     qreal maxInThreshold = 0.4;
-    int minThresholdFrames = 1;
-    int maxThresholdFrames = 16;
-    bool isActive = false;
-    QList<qreal> frameVolumes;
+    int minVoiceHold = 250;
+    int maxVoiceHold = 1000;
 };
 
 #endif // OPENAL_H
