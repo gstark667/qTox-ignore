@@ -161,10 +161,25 @@
  * @fn void Audio::setInputGain(qreal dB)
  * @brief set the input gain
  *
- * @fn void Audio::setInputThreshold(qreal dB)
+ * @fn void Audio::setInputThreshold(qreal percent)
  * @brief set the input threshold
  *
- * @param[in] dB the new input gain in dB
+ * @param[in] percent the new input threshold percentage
+ *
+ * @fn void Audio::getInputThreshold()
+ * @brief get the current input threshold
+ *
+ * @return current input threshold percentage
+ *
+ * @fn void Audio::setVoiceHold(int msec)
+ * @brief set the voice hold time
+ *
+ * @param[in] msec the new voice hold in milliseconds
+ *
+ * @fn void Audio::getVoiceHold()
+ * @brief get the current voice hold
+ *
+ * @return the current voice hold in milliseconds
  */
 
 /**
