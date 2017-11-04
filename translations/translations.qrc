@@ -10,6 +10,7 @@
         <file>eo.qm</file>
         <file>es.qm</file>
         <file>et.qm</file>
+        <file>fa.qm</file>
         <file>fi.qm</file>
         <file>fr.qm</file>
         <file>he.qm</file>
@@ -29,6 +30,8 @@
         <file>ru.qm</file>
         <file>sk.qm</file>
         <file>sl.qm</file>
+        <file>sr.qm</file>
+        <file>sr_Latn.qm</file>
         <file>sv.qm</file>
         <file>sw.qm</file>
         <file>ta.qm</file>

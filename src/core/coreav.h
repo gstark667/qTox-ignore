@@ -82,8 +82,8 @@ public:
     static void invalidateGroupCallPeerSource(int group, int peer);
 
 public slots:
-    bool startCall(uint32_t friendNum, bool video = false);
-    bool answerCall(uint32_t friendNum);
+    bool startCall(uint32_t friendNum, bool video);
+    bool answerCall(uint32_t friendNum, bool video);
     bool cancelCall(uint32_t friendNum);
     void timeoutCall(uint32_t friendNum);
     void start();
@@ -111,14 +111,14 @@ private:
                                    int32_t ystride, int32_t ustride, int32_t vstride, void* self);
 
 private:
-    static constexpr uint32_t VIDEO_DEFAULT_BITRATE = 6144;
+    static constexpr uint32_t VIDEO_DEFAULT_BITRATE = 2500;
 
 private:
     ToxAV* toxav;
     std::unique_ptr<QThread> coreavThread;
     std::unique_ptr<QTimer> iterateTimer;
-    static IndexedList<ToxFriendCall> calls;
-    static IndexedList<ToxGroupCall> groupCalls;
+    static std::map<uint32_t, ToxFriendCall> calls;
+    static std::map<int, ToxGroupCall> groupCalls;
     std::atomic_flag threadSwitchLock;
 
     friend class Audio;

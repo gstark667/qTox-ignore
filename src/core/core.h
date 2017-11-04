@@ -21,7 +21,7 @@
 #ifndef CORE_HPP
 #define CORE_HPP
 
-#include "corestructs.h"
+#include "toxfile.h"
 #include "toxid.h"
 
 #include <tox/tox.h>
@@ -29,26 +29,34 @@
 #include <QMutex>
 #include <QObject>
 
+#include <functional>
+
 class CoreAV;
+class ICoreSettings;
 class GroupInvite;
 class Profile;
 class QTimer;
+
+enum class Status
+{
+    Online = 0,
+    Away,
+    Busy,
+    Offline
+};
 
 class Core : public QObject
 {
     Q_OBJECT
 public:
-    explicit Core(QThread* coreThread, Profile& profile);
+    Core(QThread* coreThread, Profile& profile, const ICoreSettings* const settings);
     static Core* getInstance();
     const CoreAV* getAv() const;
     CoreAV* getAv();
     ~Core();
 
     static const QString TOX_EXT;
-    static QString sanitize(QString name);
     static QStringList splitMessage(const QString& message, int maxLen);
-
-    static QByteArray getSaltFromFile(QString filename);
 
     QString getPeerName(const ToxPk& id) const;
 
@@ -73,6 +81,7 @@ public:
     QPair<QByteArray, QByteArray> getKeypair() const;
 
     bool isReady() const;
+    void callWhenAvReady(std::function<void(CoreAV* av)>&& toCall);
 
     void sendFile(uint32_t friendId, QString filename, QString filePath, long long filesize);
 
@@ -225,6 +234,8 @@ private:
     Profile& profile;
     QMutex messageSendMutex;
     bool ready;
+    const ICoreSettings* const s;
+    std::vector<std::function<void(CoreAV* av)>> toCallWhenAvReady;
 
     static QThread* coreThread;
 

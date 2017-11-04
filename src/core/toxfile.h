@@ -7,25 +7,6 @@
 class QFile;
 class QTimer;
 
-enum class Status
-{
-    Online = 0,
-    Away,
-    Busy,
-    Offline
-};
-
-struct DhtServer
-{
-    QString name;
-    QString userId;
-    QString address;
-    quint16 port;
-
-    bool operator==(const DhtServer& other) const;
-    bool operator!=(const DhtServer& other) const;
-};
-
 struct ToxFile
 {
     enum FileStatus

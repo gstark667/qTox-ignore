@@ -29,7 +29,8 @@
 
 #include "genericchatitemwidget.h"
 
-#include "src/core/corestructs.h"
+#include "src/core/core.h"
+#include "src/core/toxfile.h"
 #include "src/core/toxid.h"
 
 #define PIXELS_TO_ACT 7
@@ -38,32 +39,33 @@ namespace Ui {
 class MainWindow;
 }
 
+class AddFriendForm;
+class Camera;
 class ChatForm;
-class GenericChatroomWidget;
+class CircleWidget;
+class ContentDialog;
+class ContentLayout;
+class Core;
+class FilesForm;
+class Friend;
+class FriendListWidget;
 class FriendWidget;
-class GroupWidget;
+class GenericChatroomWidget;
 class Group;
 class GroupInvite;
-class Friend;
-class QSplitter;
-class VideoSurface;
-class QMenu;
-class Core;
-class Camera;
-class FriendListWidget;
-class MaskablePixmapWidget;
-class QTimer;
-class SystemTrayIcon;
-class FilesForm;
-class ProfileForm;
-class SettingsWidget;
-class AddFriendForm;
 class GroupInviteForm;
-class CircleWidget;
+class GroupWidget;
+class MaskablePixmapWidget;
+class ProfileForm;
+class ProfileInfo;
 class QActionGroup;
-class ContentLayout;
-class ContentDialog;
+class QMenu;
 class QPushButton;
+class QSplitter;
+class QTimer;
+class SettingsWidget;
+class SystemTrayIcon;
+class VideoSurface;
 
 class Widget final : public QMainWindow
 {
@@ -150,7 +152,7 @@ public slots:
     void onSelfAvatarLoaded(const QPixmap& pic);
     void setUsername(const QString& username);
     void setStatusMessage(const QString& statusMessage);
-    void addFriend(int friendId, const ToxPk& friendPk);
+    void addFriend(uint32_t friendId, const ToxPk& friendPk);
     void addFriendFailed(const ToxPk& userId, const QString& errorInfo = QString());
     void onFriendStatusChanged(int friendId, Status status);
     void onFriendStatusMessageChanged(int friendId, const QString& message);
@@ -276,7 +278,10 @@ private:
     ContentLayout* contentLayout;
     AddFriendForm* addFriendForm;
     GroupInviteForm* groupInviteForm;
+
+    ProfileInfo* profileInfo;
     ProfileForm* profileForm;
+
     QPointer<SettingsWidget> settingsWidget;
     FilesForm* filesForm;
     static Widget* instance;

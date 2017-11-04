@@ -112,6 +112,7 @@ qt5_add_translation(${PROJECT_NAME}_QM_FILES
   translations/eo.ts
   translations/es.ts
   translations/et.ts
+  translations/fa.ts
   translations/fi.ts
   translations/fr.ts
   translations/he.ts
@@ -131,6 +132,8 @@ qt5_add_translation(${PROJECT_NAME}_QM_FILES
   translations/ru.ts
   translations/sk.ts
   translations/sl.ts
+  translations/sr.ts
+  translations/sr_Latn.ts
   translations/sv.ts
   translations/sw.ts
   translations/ta.ts
@@ -228,15 +231,17 @@ set(${PROJECT_NAME}_SOURCES
   src/core/corefile.cpp
   src/core/corefile.h
   src/core/core.h
-  src/core/corestructs.cpp
-  src/core/corestructs.h
-  src/core/indexedlist.h
+  src/core/dhtserver.cpp
+  src/core/dhtserver.h
+  src/core/icoresettings.h
   src/core/recursivesignalblocker.cpp
   src/core/recursivesignalblocker.h
   src/core/toxcall.cpp
   src/core/toxcall.h
   src/core/toxencrypt.cpp
   src/core/toxencrypt.h
+  src/core/toxfile.cpp
+  src/core/toxfile.h
   src/core/toxid.cpp
   src/core/toxid.h
   src/core/toxpk.cpp
@@ -245,8 +250,6 @@ set(${PROJECT_NAME}_SOURCES
   src/core/toxstring.h
   src/friendlist.cpp
   src/friendlist.h
-  src/model/groupinvite.cpp
-  src/model/groupinvite.h
   src/grouplist.cpp
   src/grouplist.h
   src/ipc.cpp
@@ -258,14 +261,22 @@ set(${PROJECT_NAME}_SOURCES
   src/model/contact.h
   src/model/friend.cpp
   src/model/friend.h
+  src/model/groupinvite.cpp
+  src/model/groupinvite.h
   src/model/group.cpp
   src/model/group.h
+  src/model/interface.h
+  src/model/profile/iprofileinfo.h
+  src/model/profile/profileinfo.cpp
+  src/model/profile/profileinfo.h
   src/net/autoupdate.cpp
   src/net/autoupdate.h
   src/net/avatarbroadcaster.cpp
   src/net/avatarbroadcaster.h
   src/net/toxme.cpp
   src/net/toxme.h
+  src/net/toxmedata.cpp
+  src/net/toxmedata.h
   src/net/toxuri.cpp
   src/net/toxuri.h
   src/nexus.cpp
@@ -550,6 +561,14 @@ if(${USE_FILTERAUDIO})
     else()
          message(STATUS "not using filteraudio, libfilteraudio not found")
     endif()
+endif()
+
+if (MINGW)
+  STRING(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
+  if (CMAKE_BUILD_TYPE_LOWER MATCHES debug)
+    # Allows wine to display source code file names and line numbers on crash in its backtrace
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gdwarf-2")
+  endif()
 endif()
 
 # the compiler flags for compiling C sources

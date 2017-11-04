@@ -15,9 +15,13 @@ function(auto_test subsystem module)
     Qt5::Test)
   add_test(
     NAME test_${module}
-    COMMAND test_${module})
+    COMMAND ${TEST_CROSSCOMPILING_EMULATOR} test_${module})
 endfunction()
 
 auto_test(core toxpk)
 auto_test(core toxid)
 auto_test(chatlog textformatter)
+auto_test(net toxmedata)
+if (UNIX)
+  auto_test(platform posixsignalnotifier)
+endif()

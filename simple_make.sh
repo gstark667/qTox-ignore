@@ -12,6 +12,7 @@ apt_install() {
         cmake
         git
         libavdevice-dev
+        libexif-dev
         libgdk-pixbuf2.0-dev
         libglib2.0-dev
         libgtk2.0-dev
@@ -30,15 +31,6 @@ apt_install() {
         qttools5-dev
         qttools5-dev-tools
     )
-
-    local codename=$(lsb_release -c -s)
-
-    # Enable Debian Jessie backports repository for libsqlcipher-dev (if not yet enabled)
-    if [ ${codename} == jessie ] && [ $(apt-cache policy | fgrep jessie-backports -c) == 0 ]
-    then
-        echo "deb http://httpredir.debian.org/debian jessie-backports main" | sudo tee /etc/apt/sources.list.d/qtox-backports.list
-        sudo apt-get update
-    fi
 
     sudo apt-get install "${apt_packages[@]}"
 }

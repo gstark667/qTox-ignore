@@ -1,4 +1,4 @@
-#include "src/core/corestructs.h"
+#include "src/core/toxfile.h"
 #include "src/core/core.h"
 #include <QFile>
 #include <QRegularExpression>
@@ -15,27 +15,6 @@
  * @var uint8_t ToxFile::fileKind
  * @brief Data file (default) or avatar
  */
-
-/**
- * @brief   Compare equal operator
- * @param   other   the compared instance
- * @return  true, if equal; false otherwise
- */
-bool DhtServer::operator==(const DhtServer& other) const
-{
-    return this == &other || (port == other.port && address == other.address
-                              && userId == other.userId && name == other.name);
-}
-
-/**
- * @brief   Compare not equal operator
- * @param   other   the compared instance
- * @return  true, if not equal; false otherwise
- */
-bool DhtServer::operator!=(const DhtServer& other) const
-{
-    return !(*this == other);
-}
 
 /**
  * @brief ToxFile constructor

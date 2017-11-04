@@ -73,6 +73,8 @@
 #include "src/widget/translator.h"
 #include "tool/removefrienddialog.h"
 
+#include <src/model/profile/profileinfo.h>
+
 bool toxActivateEventHandler(const QByteArray&)
 {
     Widget* widget = Nexus::getDesktopGUI();
@@ -228,19 +230,20 @@ void Widget::init()
     filesForm = new FilesForm();
     addFriendForm = new AddFriendForm;
     groupInviteForm = new GroupInviteForm;
-    profileForm = new ProfileForm();
+
+    Core* core = Nexus::getCore();
+    Profile* profile = Nexus::getProfile();
+    profileInfo = new ProfileInfo(core, profile);
+    profileForm = new ProfileForm(profileInfo);
 
     // connect logout tray menu action
     connect(actionLogout, &QAction::triggered, profileForm, &ProfileForm::onLogoutClicked);
 
-    Profile* profile = Nexus::getProfile();
     connect(profile, &Profile::selfAvatarChanged, profileForm, &ProfileForm::onSelfAvatarLoaded);
 
     const Settings& s = Settings::getInstance();
-    Core* core = Nexus::getCore();
-    CoreAV* av = core->getAv();
-    connect(av, &CoreAV::avEnd, this, &Widget::onCallEnd);
 
+    core->callWhenAvReady([this](CoreAV* av){connect(av, &CoreAV::avEnd, this, &Widget::onCallEnd);});
     connect(core, &Core::fileDownloadFinished, filesForm, &FilesForm::onFileDownloadComplete);
     connect(core, &Core::fileUploadFinished, filesForm, &FilesForm::onFileUploadComplete);
     connect(ui->addButton, &QPushButton::clicked, this, &Widget::onAddClicked);
@@ -965,10 +968,13 @@ void Widget::onCallEnd(uint32_t friendId)
     Audio::getInstance().stopLoop();
 }
 
-void Widget::addFriend(int friendId, const ToxPk& friendPk)
+void Widget::addFriend(uint32_t friendId, const ToxPk& friendPk)
 {
+    Settings& s = Settings::getInstance();
+    s.updateFriendAddress(friendPk.toString());
+
     Friend* newfriend = FriendList::addFriend(friendId, friendPk);
-    bool compact = Settings::getInstance().getCompactLayout();
+    bool compact = s.getCompactLayout();
     FriendWidget* widget = new FriendWidget(newfriend, compact);
     ChatForm* friendForm = new ChatForm(newfriend);
     newfriend->setChatForm(friendForm);
@@ -977,12 +983,10 @@ void Widget::addFriend(int friendId, const ToxPk& friendPk)
     chatForms[friendId] = friendForm;
     newfriend->loadHistory();
 
-    const Settings& s = Settings::getInstance();
-
     QDate activityDate = s.getFriendActivity(friendPk);
     QDate chatDate = friendForm->getLatestDate();
     if (chatDate > activityDate && chatDate.isValid()) {
-        Settings::getInstance().setFriendActivity(friendPk, chatDate);
+        s.setFriendActivity(friendPk, chatDate);
     }
 
     contactListWidget->addFriendWidget(widget, Status::Offline, s.getFriendCircleID(friendPk));
@@ -2145,6 +2149,7 @@ void Widget::clearAllReceipts()
 
 void Widget::reloadTheme()
 {
+    this->setStyleSheet(Style::getStylesheet(":/ui/window/general.css"));
     QString statusPanelStyle = Style::getStylesheet(":/ui/window/statusPanel.css");
     ui->tooliconsZone->setStyleSheet(Style::getStylesheet(":/ui/tooliconsZone/tooliconsZone.css"));
     ui->statusPanel->setStyleSheet(statusPanelStyle);

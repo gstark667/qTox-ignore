@@ -21,11 +21,11 @@
 #include "core.h"
 #include "corefile.h"
 #include "src/core/coreav.h"
+#include "src/core/icoresettings.h"
 #include "src/core/toxstring.h"
 #include "src/model/groupinvite.h"
 #include "src/nexus.h"
 #include "src/persistence/profile.h"
-#include "src/persistence/settings.h"
 #include "src/widget/gui.h"
 
 #include <QCoreApplication>
@@ -41,17 +41,20 @@ static const int MAX_PROXY_ADDRESS_LENGTH = 255;
 
 #define MAX_GROUP_MESSAGE_LEN 1024
 
-Core::Core(QThread* CoreThread, Profile& profile)
+Core::Core(QThread* CoreThread, Profile& profile, const ICoreSettings* const settings)
     : tox(nullptr)
     , av(nullptr)
     , profile(profile)
     , ready(false)
+    , s{settings}
 {
     coreThread = CoreThread;
     toxTimer = new QTimer(this);
     toxTimer->setSingleShot(true);
     connect(toxTimer, &QTimer::timeout, this, &Core::process);
-    connect(&Settings::getInstance(), &Settings::dhtServerListChanged, this, &Core::process);
+    s->connectTo_dhtServerListChanged([=](const QList<DhtServer>& servers){
+        process();
+    });
 }
 
 void Core::deadifyTox()
@@ -112,16 +115,15 @@ CoreAV* Core::getAv()
  * @param savedata Previously saved Tox data
  * @return Tox_Options instance needed to create Tox instance
  */
-Tox_Options initToxOptions(const QByteArray& savedata)
+Tox_Options initToxOptions(const QByteArray& savedata, const ICoreSettings* s)
 {
     // IPv6 needed for LAN discovery, but can crash some weird routers. On by default, can be
     // disabled in options.
-    const Settings& s = Settings::getInstance();
-    bool enableIPv6 = s.getEnableIPv6();
-    bool forceTCP = s.getForceTCP();
-    Settings::ProxyType proxyType = s.getProxyType();
-    quint16 proxyPort = s.getProxyPort();
-    QString proxyAddr = s.getProxyAddr();
+    bool enableIPv6 = s->getEnableIPv6();
+    bool forceTCP = s->getForceTCP();
+    ICoreSettings::ProxyType proxyType = s->getProxyType();
+    quint16 proxyPort = s->getProxyPort();
+    QString proxyAddr = s->getProxyAddr();
     QByteArray proxyAddrData = proxyAddr.toUtf8();
 
     if (enableIPv6) {
@@ -144,15 +146,15 @@ Tox_Options initToxOptions(const QByteArray& savedata)
     toxOptions.savedata_data = reinterpret_cast<const uint8_t*>(savedata.data());
     toxOptions.savedata_length = savedata.size();
 
-    if (proxyType != Settings::ProxyType::ptNone) {
+    if (proxyType != ICoreSettings::ProxyType::ptNone) {
         if (proxyAddr.length() > MAX_PROXY_ADDRESS_LENGTH) {
             qWarning() << "proxy address" << proxyAddr << "is too long";
         } else if (!proxyAddr.isEmpty() && proxyPort > 0) {
             qDebug() << "using proxy" << proxyAddr << ":" << proxyPort;
             // protection against changings in TOX_PROXY_TYPE enum
-            if (proxyType == Settings::ProxyType::ptSOCKS5) {
+            if (proxyType == ICoreSettings::ProxyType::ptSOCKS5) {
                 toxOptions.proxy_type = TOX_PROXY_TYPE_SOCKS5;
-            } else if (proxyType == Settings::ProxyType::ptHTTP) {
+            } else if (proxyType == ICoreSettings::ProxyType::ptHTTP) {
                 toxOptions.proxy_type = TOX_PROXY_TYPE_HTTP;
             }
 
@@ -170,7 +172,7 @@ Tox_Options initToxOptions(const QByteArray& savedata)
  */
 void Core::makeTox(QByteArray savedata)
 {
-    Tox_Options toxOptions = initToxOptions(savedata);
+    Tox_Options toxOptions = initToxOptions(savedata, s);
     TOX_ERR_NEW tox_err;
     tox = tox_new(&toxOptions, &tox_err);
 
@@ -184,7 +186,7 @@ void Core::makeTox(QByteArray savedata)
         return;
 
     case TOX_ERR_NEW_PORT_ALLOC:
-        if (Settings::getInstance().getEnableIPv6()) {
+        if (s->getEnableIPv6()) {
             toxOptions.ipv6_enabled = false;
             tox = tox_new(&toxOptions, &tox_err);
             if (tox_err == TOX_ERR_NEW_OK) {
@@ -246,6 +248,10 @@ void Core::makeAv()
         qCritical() << "Toxav core failed to start";
         emit failedToStart();
     }
+    for (const auto& callback : toCallWhenAvReady) {
+        callback(av);
+    }
+    toCallWhenAvReady.clear();
 }
 
 /**
@@ -387,8 +393,7 @@ bool Core::checkConnection()
  */
 void Core::bootstrapDht()
 {
-    const Settings& s = Settings::getInstance();
-    QList<DhtServer> dhtServerList = s.getDhtServerList();
+    QList<DhtServer> dhtServerList = s->getDhtServerList();
     int listSize = dhtServerList.size();
     if (!listSize) {
         qWarning() << "no bootstrap list?!?";
@@ -605,8 +610,6 @@ void Core::requestFriendship(const ToxId& friendId, const QString& message)
         emit failedToAddFriend(friendPk);
     } else {
         qDebug() << "Requested friendship of " << friendNumber;
-        Settings::getInstance().updateFriendAddress(friendId.toString());
-
         emit friendAdded(friendNumber, friendPk);
         emit requestSent(friendPk, message);
     }
@@ -942,26 +945,6 @@ void Core::setStatus(Status status)
     tox_self_set_status(tox, userstatus);
     profile.saveToxSave();
     emit statusSet(status);
-}
-
-QString Core::sanitize(QString name)
-{
-    // these are pretty much Windows banned filename characters
-    QList<QChar> banned{'/', '\\', ':', '<', '>', '"', '|', '?', '*'};
-    for (QChar c : banned) {
-        name.replace(c, '_');
-    }
-
-    // also remove leading and trailing periods
-    if (name[0] == '.') {
-        name[0] = '_';
-    }
-
-    if (name.endsWith('.')) {
-        name[name.length() - 1] = '_';
-    }
-
-    return name;
 }
 
 /**
@@ -1392,6 +1375,10 @@ bool Core::isReady() const
     return av && av->getToxAv() && tox && ready;
 }
 
+void Core::callWhenAvReady(std::function<void(CoreAV* av)>&& toCall)
+{
+    toCallWhenAvReady.emplace_back(std::move(toCall));
+}
 
 /**
  * @brief Sets the NoSpam value to prevent friend request spam

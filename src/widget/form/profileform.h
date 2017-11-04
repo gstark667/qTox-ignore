@@ -27,10 +27,10 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-class CroppingLabel;
-class Core;
-class MaskablePixmapWidget;
 class ContentLayout;
+class CroppingLabel;
+class IProfileInfo;
+class MaskablePixmapWidget;
 
 namespace Ui {
 class IdentitySettings;
@@ -54,17 +54,13 @@ class ProfileForm : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ProfileForm(QWidget* parent = nullptr);
+    ProfileForm(IProfileInfo* profileInfo, QWidget* parent = nullptr);
     ~ProfileForm();
     virtual void show() final
     {
     }
     void show(ContentLayout* contentLayout);
     bool isShown() const;
-
-signals:
-    void userNameChanged(QString);
-    void statusMessageChanged(QString);
 
 public slots:
     void onSelfAvatarLoaded(const QPixmap& pic);
@@ -97,11 +93,11 @@ private:
     void refreshProfiles();
     Ui::IdentitySettings* bodyUI;
     MaskablePixmapWidget* profilePicture;
-    Core* core;
     QTimer timer;
     bool hasCheck = false;
     QRWidget* qr;
     ClickableTE* toxId;
+    IProfileInfo* profileInfo;
     void showRegisterToxme();
 };
 
